@@ -1,76 +1,87 @@
-const board = document.getElementById('board');
-const cells = document.querySelectorAll('.cell');
-const message = document.getElementById('message');
-const newGameBtn = document.getElementById('newGameBtn');
-
-let currentPlayer = 'X';
-let gameActive = true;
-let gameState = ["", "", "", "", "", "", "", "", ""];
-
-const winningConditions = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
+const X_CLASS = 'x';
+const CIRCLE_CLASS = 'circle';
+const WINNING_COMBINATIONS = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6]
 ];
+const cellElements = document.querySelectorAll('[data-cell]');
+const board = document.getElementById('board');
+const statusMessage = document.getElementById('statusMessage');
+const restartButton = document.getElementById('restartButton');
+let circleTurn;
 
-function handleCellClick(event) {
-    const clickedCell = event.target;
-    const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+startGame();
 
-    if (gameState[clickedCellIndex] !== "" || !gameActive) {
-        return;
-    }
+restartButton.addEventListener('click', startGame);
 
-    gameState[clickedCellIndex] = currentPlayer;
-    clickedCell.innerHTML = currentPlayer;
-
-    handleResultValidation();
+function startGame() {
+  circleTurn = false;
+  cellElements.forEach(cell => {
+    cell.classList.remove(X_CLASS);
+    cell.classList.remove(CIRCLE_CLASS);
+    cell.removeEventListener('click', handleClick);
+    cell.addEventListener('click', handleClick, { once: true });
+  });
+  setBoardHoverClass();
+  statusMessage.innerText = '';
 }
 
-function handleResultValidation() {
-    let roundWon = false;
-    for (let i = 0; i < winningConditions.length; i++) {
-        const winCondition = winningConditions[i];
-        let a = gameState[winCondition[0]];
-        let b = gameState[winCondition[1]];
-        let c = gameState[winCondition[2]];
-        if (a === '' || b === '' || c === '') {
-            continue;
-        }
-        if (a === b && b === c) {
-            roundWon = true;
-            break;
-        }
-    }
-
-    if (roundWon) {
-        message.innerHTML = `Player ${currentPlayer} wins!`;
-        gameActive = false;
-        return;
-    }
-
-    let roundDraw = !gameState.includes("");
-    if (roundDraw) {
-        message.innerHTML = `It's a draw!`;
-        gameActive = false;
-        return;
-    }
-
-    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+function handleClick(e) {
+  const cell = e.target;
+  const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS;
+  placeMark(cell, currentClass);
+  if (checkWin(currentClass)) {
+    endGame(false);
+  } else if (isDraw()) {
+    endGame(true);
+  } else {
+    swapTurns();
+    setBoardHoverClass();
+  }
 }
 
-function handleRestartGame() {
-    currentPlayer = 'X';
-    gameActive = true;
-    gameState = ["", "", "", "", "", "", "", "", ""];
-    message.innerHTML = "";
-    cells.forEach(cell => cell.innerHTML = "");
+function endGame(draw) {
+  if (draw) {
+    statusMessage.innerText = "It's a Draw!";
+  } else {
+    statusMessage.innerText = `${circleTurn ? "O's" : "X's"} Wins!`;
+  }
 }
 
-cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-newGameBtn.addEventListener('click', handleRestartGame);
+function isDraw() {
+  return [...cellElements].every(cell => {
+    return cell.classList.contains(X_CLASS) || cell.classList.contains(CIRCLE_CLASS);
+  });
+}
+
+function placeMark(cell, currentClass) {
+  cell.classList.add(currentClass);
+}
+
+function swapTurns() {
+  circleTurn = !circleTurn;
+}
+
+function setBoardHoverClass() {
+  board.classList.remove(X_CLASS);
+  board.classList.remove(CIRCLE_CLASS);
+  if (circleTurn) {
+    board.classList.add(CIRCLE_CLASS);
+  } else {
+    board.classList.add(X_CLASS);
+  }
+}
+
+function checkWin(currentClass) {
+  return WINNING_COMBINATIONS.some(combination => {
+    return combination.every(index => {
+      return cellElements[index].classList.contains(currentClass);
+    });
+  });
+}
